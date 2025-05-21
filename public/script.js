@@ -27,13 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let deletingTitle = '';
 
     // Generate TOTP code
-    function generateCode(secret) {
+    async function generateCode(secret) {
         try {
             // Remove spaces and convert to uppercase
             secret = secret.replace(/\s/g, '').toUpperCase();
             
             // Generate TOTP code using otplib
-            const code = otplib.authenticator.generate(secret);
+            const code = await otplib.authenticator.generate(secret);
             return code;
         } catch (error) {
             console.error('Error generating code:', error);
@@ -42,9 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Update code display
-    function updateCodeDisplay() {
+    async function updateCodeDisplay() {
         if (currentSecret) {
-            const code = generateCode(currentSecret);
+            const code = await generateCode(currentSecret);
             generatedCode.textContent = code;
             startCountdown();
         } else {
