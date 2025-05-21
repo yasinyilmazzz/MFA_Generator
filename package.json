@@ -4,7 +4,8 @@
   "description": "MFA Code Generator Web Application",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "npm install && npm install express otplib crypto-js"
   },
   "dependencies": {
     "express": "^4.18.2",
