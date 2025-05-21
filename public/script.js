@@ -52,7 +52,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Convert binary to bytes
             const bytes = [];
             for (let i = 0; i < binary.length; i += 8) {
-                bytes.push(parseInt(binary.substr(i, 8), 2));
+                if (i + 8 <= binary.length) {
+                    bytes.push(parseInt(binary.substr(i, 8), 2));
+                }
             }
 
             // Get current time in 30-second intervals
@@ -140,7 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Countdown functions
     function startCountdown() {
         stopCountdown();
-        timeLeft = 30;
+        
+        // Calculate time left until next 30-second interval
+        const now = Date.now();
+        const nextInterval = Math.ceil(now / 30000) * 30000;
+        timeLeft = Math.ceil((nextInterval - now) / 1000);
+        
         updateCountdownDisplay();
         
         countdownInterval = setInterval(() => {
