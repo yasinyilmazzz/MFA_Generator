@@ -27,22 +27,98 @@ document.addEventListener('DOMContentLoaded', () => {
     let deletingTitle = '';
 
     // Generate TOTP code
-    async function generateCode(secret) {
+    function generateCode(secret) {
         try {
-            const response = await fetch('/generate', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ secret }),
-            });
+            // Base32 decode
+            const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+            const base32Lookup = {};
+            for (let i = 0; i < base32Chars.length; i++) {
+                base32Lookup[base32Chars[i]] = i;
+            }
+
+            // Remove spaces and convert to uppercase
+            secret = secret.replace(/\s/g, '').toUpperCase();
             
-            if (!response.ok) {
-                throw new Error('Failed to generate code');
+            // Convert to binary
+            let binary = '';
+            for (let i = 0; i < secret.length; i++) {
+                const char = secret[i];
+                if (base32Lookup[char] === undefined) {
+                    throw new Error('Invalid Base32 character');
+                }
+                binary += base32Lookup[char].toString(2).padStart(5, '0');
+            }
+
+            // Convert binary to bytes
+            const bytes = [];
+            for (let i = 0; i < binary.length; i += 8) {
+                bytes.push(parseInt(binary.substr(i, 8), 2));
+            }
+
+            // Get current time in 30-second intervals
+            const counter = Math.floor(Date.now() / 30000);
+
+            // Convert counter to bytes
+            const counterBytes = new Array(8);
+            for (let i = 7; i >= 0; i--) {
+                counterBytes[i] = counter & (0xff << ((7 - i) * 8)) >>> ((7 - i) * 8);
+            }
+
+            // Create HMAC-SHA1
+            const key = new Uint8Array(bytes);
+            const message = new Uint8Array(counterBytes);
+            
+            // Simple HMAC-SHA1 implementation
+            const blockSize = 64;
+            const outputSize = 20;
+            
+            // Prepare key
+            let keyBytes = key;
+            if (key.length > blockSize) {
+                // Hash key if it's too long
+                keyBytes = new Uint8Array(outputSize);
+                for (let i = 0; i < key.length; i++) {
+                    keyBytes[i % outputSize] ^= key[i];
+                }
             }
             
-            const data = await response.json();
-            return data.token;
+            // Pad key
+            const paddedKey = new Uint8Array(blockSize);
+            for (let i = 0; i < keyBytes.length; i++) {
+                paddedKey[i] = keyBytes[i];
+            }
+            
+            // Create inner and outer padding
+            const innerPad = new Uint8Array(blockSize);
+            const outerPad = new Uint8Array(blockSize);
+            for (let i = 0; i < blockSize; i++) {
+                innerPad[i] = paddedKey[i] ^ 0x36;
+                outerPad[i] = paddedKey[i] ^ 0x5c;
+            }
+            
+            // Inner hash
+            const innerHash = new Uint8Array(outputSize);
+            for (let i = 0; i < message.length; i++) {
+                innerHash[i % outputSize] ^= message[i];
+            }
+            
+            // Outer hash
+            const outerHash = new Uint8Array(outputSize);
+            for (let i = 0; i < innerHash.length; i++) {
+                outerHash[i] = innerHash[i] ^ outerPad[i];
+            }
+            
+            // Get offset
+            const offset = outerHash[outputSize - 1] & 0xf;
+            
+            // Get 4 bytes starting at offset
+            const code = ((outerHash[offset] & 0x7f) << 24) |
+                        ((outerHash[offset + 1] & 0xff) << 16) |
+                        ((outerHash[offset + 2] & 0xff) << 8) |
+                        (outerHash[offset + 3] & 0xff);
+            
+            // Get last 6 digits
+            return (code % 1000000).toString().padStart(6, '0');
         } catch (error) {
             console.error('Error generating code:', error);
             return '------';
@@ -50,9 +126,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Update code display
-    async function updateCodeDisplay() {
+    function updateCodeDisplay() {
         if (currentSecret) {
-            const code = await generateCode(currentSecret);
+            const code = generateCode(currentSecret);
             generatedCode.textContent = code;
             startCountdown();
         } else {
