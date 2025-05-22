@@ -75,10 +75,11 @@ header {
 }
 
 .secret-input {
+    width: 100%;
     padding: 0.75rem;
+    margin-bottom: 1rem;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    font-size: 1rem;
 }
 
 .generate-button, .save-button {
@@ -186,6 +187,11 @@ header {
 
 .modal h2 {
     margin-bottom: 1rem;
+}
+
+.modal label {
+    display: block;
+    margin-bottom: 0.5rem;
 }
 
 .modal p {

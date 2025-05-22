@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteModal = document.getElementById('deleteModal');
     const confirmDelete = document.getElementById('confirmDelete');
     const cancelDelete = document.getElementById('cancelDelete');
+    const editSecretInput = document.getElementById('editSecretInput');
 
     let currentSecret = '';
     let countdownInterval = null;
@@ -201,23 +202,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Edit code
     function handleEdit(title) {
-        editingTitle = title;
-        editTitleInput.value = title;
-        editModal.style.display = 'block';
-        editTitleInput.focus();
+      editingTitle = title;
+      editTitleInput.value = title;
+      editSecretInput.value = JSON.parse(localStorage.getItem('mfaCodes'))[title];
+      editModal.style.display = 'block';
+      editTitleInput.focus();
     }
 
     confirmEdit.addEventListener('click', () => {
-        const newTitle = editTitleInput.value.trim();
-        if (newTitle && newTitle !== editingTitle) {
-            const savedData = JSON.parse(localStorage.getItem('mfaCodes') || '{}');
-            const secret = savedData[editingTitle];
-            delete savedData[editingTitle];
-            savedData[newTitle] = secret;
-            localStorage.setItem('mfaCodes', JSON.stringify(savedData));
-            updateSavedCodesList();
-            closeModal(editModal);
-        }
+      const newTitle = editTitleInput.value.trim();
+      const newSecret = editSecretInput.value.trim();
+
+      if ((newTitle && newTitle !== editingTitle) || newSecret) {
+        const savedData = JSON.parse(localStorage.getItem('mfaCodes') || '{}');
+        const oldSecret = savedData[editingTitle];
+
+        delete savedData[editingTitle];
+
+        savedData[newTitle] = newSecret || oldSecret;
+
+        localStorage.setItem('mfaCodes', JSON.stringify(savedData));
+        updateSavedCodesList();
+        closeModal(editModal);
+      }
     });
 
     // Delete code
@@ -236,49 +243,65 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Update saved codes list
     function updateSavedCodesList() {
-        const savedData = JSON.parse(localStorage.getItem('mfaCodes') || '{}');
-        savedCodes.innerHTML = '';
-        
-        Object.keys(savedData).forEach(title => {
-            const item = document.createElement('div');
-            item.className = 'saved-code-item';
-            
-            const titleSpan = document.createElement('span');
-            titleSpan.className = 'saved-code-title';
-            titleSpan.textContent = title;
-            titleSpan.addEventListener('click', () => {
-                currentSecret = savedData[title];
-                secretInput.value = currentSecret;
-                updateCodeDisplay();
-            });
-            
-            const actions = document.createElement('div');
-            actions.className = 'saved-code-actions';
-            
-            const editIcon = document.createElement('i');
-            editIcon.className = 'fas fa-edit edit-icon';
-            editIcon.title = 'Edit';
-            editIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleEdit(title);
-            });
-            
-            const deleteIcon = document.createElement('i');
-            deleteIcon.className = 'fas fa-trash delete-icon';
-            deleteIcon.title = 'Delete';
-            deleteIcon.addEventListener('click', (e) => {
-                e.stopPropagation();
-                handleDelete(title);
-            });
-            
-            actions.appendChild(editIcon);
-            actions.appendChild(deleteIcon);
-            
-            item.appendChild(titleSpan);
-            item.appendChild(actions);
-            savedCodes.appendChild(item);
+      const savedData = JSON.parse(localStorage.getItem('mfaCodes') || '{}');
+      savedCodes.innerHTML = '';
+
+      const titles = Object.keys(savedData);
+
+      titles.forEach(title => {
+        const item = document.createElement('div');
+        item.className = 'saved-code-item';
+
+        const titleSpan = document.createElement('span');
+        titleSpan.className = 'saved-code-title';
+        titleSpan.textContent = title;
+        titleSpan.addEventListener('click', () => {
+          currentSecret = savedData[title];
+          secretInput.value = currentSecret;
+          updateCodeDisplay();
         });
+
+        const actions = document.createElement('div');
+        actions.className = 'saved-code-actions';
+
+        const editIcon = document.createElement('i');
+        editIcon.className = 'fas fa-edit edit-icon';
+        editIcon.title = 'Edit';
+        editIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleEdit(title);
+        });
+
+        const deleteIcon = document.createElement('i');
+        deleteIcon.className = 'fas fa-trash delete-icon';
+        deleteIcon.title = 'Delete';
+        deleteIcon.addEventListener('click', (e) => {
+          e.stopPropagation();
+          handleDelete(title);
+        });
+
+        actions.appendChild(editIcon);
+        actions.appendChild(deleteIcon);
+
+        item.appendChild(titleSpan);
+        item.appendChild(actions);
+        savedCodes.appendChild(item);
+      });
     }
+
+    new Sortable(savedCodes, {
+      animation: 150,
+      onEnd: function (evt) {
+        const newOrder = Array.from(savedCodes.children).map(
+          (item) => item.querySelector('.saved-code-title').textContent
+        );
+        const orderedData = {};
+        newOrder.forEach((title) => {
+          orderedData[title] = JSON.parse(localStorage.getItem('mfaCodes'))[title];
+        });
+        localStorage.setItem('mfaCodes', JSON.stringify(orderedData));
+      },
+    });
 
     // Import/Export handlers
     importButton.addEventListener('click', () => {

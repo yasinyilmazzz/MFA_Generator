@@ -6,8 +6,9 @@
     <title>MFA Code Generator</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css?v=1">
-    <link rel="icon" type="image/png" sizes="16x16" href="/public/favicon-16x16.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <script src="otplib-browser.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 </head>
 <body>
     <header>
@@ -54,14 +55,17 @@
 
     <!-- Edit Modal -->
     <div id="editModal" class="modal">
-        <div class="modal-content">
-            <h2>Edit Code</h2>
-            <input type="text" id="editTitleInput" placeholder="Enter Title" class="title-input">
-            <div class="modal-buttons">
-                <button id="confirmEdit" class="confirm-button">Save Changes</button>
-                <button id="cancelEdit" class="cancel-button">Cancel</button>
-            </div>
+      <div class="modal-content">
+        <h2>Edit Code</h2>
+        <label for="editTitleInput">Title:</label>
+        <input type="text" id="editTitleInput" placeholder="Enter Title" class="title-input" /><br><br>
+        <label for="editSecretInput">Secret:</label>
+        <input type="text" id="editSecretInput" placeholder="Enter Secret" class="secret-input" /><br><br>
+        <div class="modal-buttons">
+          <button id="confirmEdit" class="confirm-button">Save Changes</button>
+          <button id="cancelEdit" class="cancel-button">Cancel</button>
         </div>
+      </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
