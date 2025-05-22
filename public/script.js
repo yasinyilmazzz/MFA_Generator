@@ -26,18 +26,81 @@ document.addEventListener('DOMContentLoaded', () => {
     let editingTitle = '';
     let deletingTitle = '';
 
+    // Base32 decode
+    function base32Decode(str) {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        const padding = '=';
+        const buffer = [];
+        let bits = 0;
+        let value = 0;
+
+     for (let i = 0; i < str.length; i++) {
+            const char = str[i].toUpperCase();
+            if (char === padding) {
+              continue;
+            }
+            const index = alphabet.indexOf(char);
+            if (index === -1) {
+              throw new Error('Invalid Base32 character');
+            }
+            value = (value << 5) | index;
+            bits += 5;
+            if (bits >= 8) {
+              buffer.push((value >>> (bits - 8)) & 0xFF);
+              bits -= 8;
+            }
+          }
+
+          return new Uint8Array(buffer);
+    }
+
     // Generate TOTP code
-    async function generateCode(secret) {
+    function generateCode(secret) {
         try {
             // Remove spaces and convert to uppercase
             secret = secret.replace(/\s/g, '').toUpperCase();
             
-            // Generate TOTP code using otplib
-            const code = await otplib.authenticator.generate(secret);
-            return code;
+            // Decode secret
+            const key = base32Decode(secret);
+            
+            // Get current time in 30-second intervals
+            const counter = BigInt(Math.floor(Date.now() / 30000));
+            
+            // Convert counter to bytes (big-endian)
+            const counterBytes = new Uint8Array(8);
+            const view = new DataView(counterBytes.buffer);
+            view.setBigUint64(0, BigInt(counter), false); //counter should be BigInt
+            
+            // Create HMAC-SHA1
+            const crypto = window.crypto || window.msCrypto;
+            const subtle = crypto.subtle || crypto.webkitSubtle;
+            
+            // Import key
+            return subtle.importKey(
+                'raw',
+                key,
+                { name: 'HMAC', hash: { name: 'SHA-1' } },
+                false,
+                ['sign']
+            ).then(key => {
+                // Sign counter
+                return subtle.sign('HMAC', key, counterBytes);
+            }).then(signature => {
+                // Get offset
+                const offset = new Uint8Array(signature)[19] & 0xf;
+                
+                // Get 4 bytes starting at offset
+                const code = ((new Uint8Array(signature)[offset] & 0x7f) << 24) |
+                            ((new Uint8Array(signature)[offset + 1] & 0xff) << 16) |
+                            ((new Uint8Array(signature)[offset + 2] & 0xff) << 8) |
+                            (new Uint8Array(signature)[offset + 3] & 0xff);
+                
+                // Get last 6 digits
+                return (code % 1000000).toString().padStart(6, '0');
+            });
         } catch (error) {
             console.error('Error generating code:', error);
-            return '------';
+            return Promise.resolve('------');
         }
     }
 
