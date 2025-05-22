@@ -2,11 +2,15 @@
 
 This project is a simple MFA (Multi-Factor Authentication) code generator that allows users to generate TOTP (Time-Based One-Time Password) codes.
 
+## Live Demo
+
+This project is live and can be accessed at [https://mfagenerator.netlify.app/](https://mfagenerator.netlify.app/).
+
 ## Setup
 
 1.  **Clone the repository:**
     ```shell
-    git clone <repository_url>
+    git clone https://github.com/yasinyilmazzz/MFA_Generator.git>
     cd TOTP
     ```
 
