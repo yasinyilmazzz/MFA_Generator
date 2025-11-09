@@ -246,7 +246,12 @@ document.addEventListener('DOMContentLoaded', () => {
       const savedData = JSON.parse(localStorage.getItem('mfaCodes') || '{}');
       savedCodes.innerHTML = '';
 
-      const titles = Object.keys(savedData);
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      let titles = Object.keys(savedData);
+
+      if (searchTerm) {
+        titles = titles.filter(title => title.toLowerCase().includes(searchTerm));
+      }
 
       titles.forEach(title => {
         const item = document.createElement('div');
@@ -347,4 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load
     updateSavedCodesList();
-}); 
+
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', updateSavedCodesList);
+});
